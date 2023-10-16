@@ -1,10 +1,10 @@
 from PIL import Image, ImageDraw
 
 
-def line(xy1, xy2):
-    xy1_d = (xy1[0] + dx, xy1[1] + dy)
-    xy2_d = (xy2[0] + dx, xy2[1] + dy)
-    ImageDraw.Draw(img).line((xy1_d, xy2_d), BLACK, width=3)
+def line(xy1, xy2, cor=(0, 0, 0)):
+    xy1_d = (xy1[0] + x0, xy1[1] + y0)
+    xy2_d = (xy2[0] + x0, xy2[1] + y0)
+    ImageDraw.Draw(img).line((xy1_d, xy2_d), cor, width=3)
 
 
 exs = [
@@ -13,7 +13,7 @@ exs = [
 ]
 
 # Seleção do exercício
-nEx = 1
+nEx = 0
 
 
 if nEx not in range(len(exs)):
@@ -160,7 +160,7 @@ BLACK = (0, 0, 0)
 prop_yx = 1.62
 prop_x = 100
 
-l_tot = max_y_up = max_y_dw = acum_x = 0
+l_tot = max_y_up = max_y_dw = x_acum = dmf_acum = 0
 
 # Definindo tamanho da imagem
 
@@ -179,54 +179,91 @@ for i in tab_sum:
 size_x = int(l_tot * 1.1)
 size_y = int(size_x / prop_yx)
 
-prop_y = (size_y - side * 2) / (max_y_up + max_y_dw)
+PROP_DEC_Y = (size_y - side * 2) / (max_y_up + max_y_dw)
 
-dx = int(side)
-dy = int(side) + max_y_up * prop_y
+x0 = int(side)
+y0 = int(side) + max_y_up * PROP_DEC_Y
 
 img = Image.new("RGB", (size_x, size_y), WHITE)
 
-# Desenhando inha da viga
+# Desenhando linha da viga
 line((0, 0), (l_tot, 0))
 
 # Desenhando demais linhas
 
 for i in range(0, nv):
-    L1x = acum_x
+    # Desenhando linha vertical
+    vertical_1x = vertical_2x = x_acum
     if i == 0:
-        L1y = 0
+        vertical_1y = 0
     else:
-        L1y = tab_sum[i - 1][1] * prop_y
-    L2x = acum_x
-    L2y = -tab_sum[i][0] * prop_y
+        vertical_1y = diagonal_2y
+    vertical_2y = -tab_sum[i][0] * PROP_DEC_Y
 
-    line((L1x, L1y), (L2x, L2y))
+    line((vertical_1x, vertical_1y), (vertical_2x, vertical_2y))
 
-    D2x = acum_x + l[i] * prop_x
-    D2y = tab_sum[i][1] * prop_y
+    # Desenhando linhas diagonais
+    diagonal_2x = x_acum + l[i] * prop_x
+    diagonal_2y = tab_sum[i][1] * PROP_DEC_Y
 
     if p[i] == 0:
-        line((L2x, L2y), (D2x, D2y))
+        line((vertical_2x, vertical_2y), (diagonal_2x, diagonal_2y))
 
     else:
-        A2x = acum_x + a[i] * prop_x
-        A2y = -vmei[i][0] * prop_y
+        vertical_meio_x = x_acum + a[i] * prop_x
 
-        B1x = acum_x + a[i] * prop_x
-        B1y = -vmei[i][1] * prop_y
+        vertical_meio_1y = -vmei[i][0] * PROP_DEC_Y
+        vertical_meio_2y = -vmei[i][1] * PROP_DEC_Y
 
-        line((L2x, L2y), (A2x, A2y))
-        line((B1x, B1y), (D2x, D2y))
-        line((A2x, A2y), (B1x, B1y))
+        line((vertical_2x, vertical_2y), (vertical_meio_x, vertical_meio_1y))
+        line((vertical_meio_x, vertical_meio_1y), (vertical_meio_x, vertical_meio_2y))
+        line((vertical_meio_x, vertical_meio_2y), (diagonal_2x, diagonal_2y))
 
-    acum_x += l[i] * prop_x
+    # DMF
+    QTDD_FATIAMENTOS = 5
 
-    if i == nv - 1:
-        L1x = acum_x
-        L1y = tab_sum[i][1] * prop_y
-        L2x = acum_x
-        L2y = 0
+    PROP_DMF_Y = 35
+    if p[i] == 0:
+        comprimento_fatiamento = l[i] / QTDD_FATIAMENTOS
+        dmf_1 = dmf_acum
+        for n_fatiamento in range(QTDD_FATIAMENTOS):
+            x_atual = (n_fatiamento + 1) * comprimento_fatiamento
+            dmf_2 = tab_sum[i][0] * (x_atual) - q[i] * (x_atual) ** 2 / 2 + dmf_acum
 
-        line((L1x, L1y), (L2x, L2y))
+            diag_1x = x_acum + (x_atual - comprimento_fatiamento) * prop_x
+            diag_1y = dmf_1 * PROP_DMF_Y
+            diag_2x = x_acum + (x_atual) * prop_x
+            diag_2y = dmf_2 * PROP_DMF_Y
+            line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=(250, 000, 200))
+            dmf_1 = dmf_2
+        dmf_acum = dmf_2
+    else:
+        dmf_acum_2 = (tab_sum[i][0] * a[i] - q[i] * (a[i]) ** 2 / 2) + dmf_acum
+
+        diag_1x = x_acum
+        diag_1y = dmf_acum * PROP_DMF_Y
+        diag_2x = vertical_meio_x
+        diag_2y = dmf_acum_2 * PROP_DMF_Y
+        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=(250, 000, 200))
+
+        dmf_acum = dmf_acum_2
+        dmf_acum_2 = (vmei[i][1] * a[i] - q[i] * (a[i]) ** 2 / 2) + dmf_acum
+
+        diag_1x = vertical_meio_x
+        diag_1y = dmf_acum * PROP_DMF_Y
+        diag_2x = diagonal_2x
+        diag_2y = dmf_acum_2 * PROP_DMF_Y
+        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=(250, 000, 200))
+
+        dmf_acum = dmf_acum_2
+
+    x_acum += l[i] * prop_x
+
+# Desenhando última linha vertical
+vertical_1x = vertical_2x = x_acum
+vertical_1y = tab_sum[nv - 1][1] * PROP_DEC_Y
+vertical_2y = 0
+
+line((vertical_1x, vertical_1y), (vertical_2x, vertical_2y))
 
 img.show()
