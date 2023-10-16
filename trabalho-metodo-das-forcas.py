@@ -1,3 +1,5 @@
+import random
+
 from PIL import Image, ImageDraw
 
 WHITE = (255, 255, 255)
@@ -8,7 +10,7 @@ GREEN = (0, 255, 0)
 PROP_YX = 1.62
 PROP_X = 100
 
-QTDD_FATIAMENTOS = 5
+QTDD_FATIAMENTOS = 100
 
 
 def line(xy1, xy2, cor=BLACK):
@@ -17,20 +19,63 @@ def line(xy1, xy2, cor=BLACK):
     ImageDraw.Draw(img).line((xy1_d, xy2_d), cor, width=3)
 
 
+def int_reta(x, a):
+    return a * x - q[i] * x**2 / 2
+
+
+def desenho_dmf(comprimento, v_inicial):
+    global dmf_acum, x_acum
+
+    if q[i] != 0:
+        l_fat = comprimento / QTDD_FATIAMENTOS
+
+        for f in range(QTDD_FATIAMENTOS):
+            dmf_esq = dmf_acum
+            l_int = f * l_fat
+            x_esq = x_acum + l_int * PROP_X
+            x_dir = x_esq + l_fat * PROP_X
+
+            dmf_acum += int_reta(l_fat, v_inicial - q[i] * l_int)
+
+            line(
+                (x_esq, dmf_esq * PROP_DMF_Y),
+                (x_dir, dmf_acum * PROP_DMF_Y),
+                cor=BLUE,
+            )
+    else:
+        dmf_esq = dmf_acum
+        dmf_acum += int_reta(comprimento, v_inicial)
+        line(
+            (x_acum, dmf_esq * PROP_DMF_Y),
+            (x_acum + comprimento * PROP_X, dmf_acum * PROP_DMF_Y),
+            cor=BLUE,
+        )
+    x_acum += comprimento * PROP_X
+
+
+# Gerando exercício com parâmetros aleatórios
+ex_aleatorio = []
+for i in range(4):
+    parametro = []
+    for j in range(3):
+        parametro.append(random.randint(1, 10))
+    ex_aleatorio.append(parametro)
+
+# Lista de exercícios
 exs = [
+    ex_aleatorio,
     [[3, 3, 3], [0, 0, 1.5], [4, 0, 0], [0, 0, 12]],
     [[4, 6, 5], [2, 3, 0], [5, 20, 30], [20, 10, 0]],
 ]
 
 # Seleção do exercício
-nEx = 0
+nEx = 2
 
 
 if nEx not in range(len(exs)):
     nEx = 0
 
 # Calculando equações
-
 l, a, q, p = exs[nEx]
 nv = len(l)
 
@@ -96,14 +141,13 @@ print(
     f"{s12:.2f}*({s10 * -1:.2f} - {s12:.2f}*x2 ) / {s11:.2f} + {s22:.2f}*x2 = {s20 * -1:.2f}"
 )
 print(
-    f"{s12 * s10 / s11 * -1:.2f} - {s12 * s12 / s11:.2f}*x2 + {s22}*x2 = {s20 * -1:.2f}"
+    f"{s12 * s10 / s11 * -1:.2f} - {s12 * s12 / s11:.2f}*x2 + {s22:.2f}*x2 = {s20 * -1:.2f}"
 )
 print(f"{s12 * s12 / s11 * -1 + s22:.2f}*x2 = {s20 * -1 - s12 * s10 / s11 * -1:.2f}")
 print("\033[1m" + f"x2 = {x2:.2f}\nx1 = {x1:.2f}\n" + "\033[0m\n")
 
 
 # Calculando tabela
-
 DM = ((-x1, x1), (x1 - x2, x2 - x1), (x2, -x2))
 
 tab_pbL = []
@@ -135,7 +179,6 @@ for i in range(nv):
             reac.append(tab_sum[i][1])
 
 # Printando tabela
-
 tit = ["Pb/l |", "ql/2 |", "dM/l |", "sum  |"]
 tabela = [tab_pbL, tab_ql, tab_mL, tab_sum]
 
@@ -162,12 +205,8 @@ for li in range(0, 4):
         print("|", end=" ")
     print()
 
-# Preparando imagem
-
-
-l_tot = max_y_up = max_y_dw = x_acum = dmf_acum = 0
-
 # Definindo tamanho da imagem
+l_tot = max_y_up = max_y_dw = x_acum = dmf_acum = dec_dir_dw = 0
 
 for i in l:
     l_tot += i
@@ -195,7 +234,6 @@ img = Image.new("RGB", (size_x, size_y), WHITE)
 line((0, 0), (l_tot, 0))
 
 # Desenhando demais linhas
-
 for i in range(0, nv):
     # Desenhando linha vertical
     if i == 0:
@@ -210,8 +248,13 @@ for i in range(0, nv):
     x_acum_dir = x_acum + l[i] * PROP_X
     dec_dir_dw = tab_sum[i][1] * PROP_DEC_Y
 
+    # Arrumar esta variável para o DMF caber perfeitamente na imagem
+    PROP_DMF_Y = PROP_DEC_Y * 0.9
+
     if p[i] == 0:
         line((x_acum, dec_esq_up), (x_acum_dir, dec_dir_dw))
+
+        desenho_dmf(l[i], tab_sum[i][0])
 
     else:
         x_a = x_acum + a[i] * PROP_X
@@ -223,51 +266,11 @@ for i in range(0, nv):
         line((x_a, dec_a_1), (x_a, dec_a_2))
         line((x_a, dec_a_2), (x_acum_dir, dec_dir_dw))
 
-    # DMF
+        desenho_dmf(a[i], tab_sum[i][0])
+        desenho_dmf(l[i] - a[i], vmei[i][1])
 
-    PROP_DMF_Y = 35
-    if p[i] == 0:
-        l_fat = l[i] / QTDD_FATIAMENTOS
-        dmf_esq = dmf_acum
-        for f in range(QTDD_FATIAMENTOS):
-            l_int = f * l_fat
-            x_esq = x_acum + l_int * PROP_X
-            x_dir = x_esq + l_fat * PROP_X
-            dmf_acum += (tab_sum[i][0] - q[i] * l_int) * l_fat - q[i] * l_fat**2 / 2
-
-            line(
-                (x_esq, dmf_esq * PROP_DMF_Y),
-                (x_dir, dmf_acum * PROP_DMF_Y),
-                cor=BLUE,
-            )
-            dmf_esq = dmf_acum
-    else:
-        dmf_acum_2 = (tab_sum[i][0] * a[i] - q[i] * (a[i]) ** 2 / 2) + dmf_acum
-
-        diag_1x = x_acum
-        diag_1y = dmf_acum * PROP_DMF_Y
-        diag_2x = x_a
-        diag_2y = dmf_acum_2 * PROP_DMF_Y
-        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=BLUE)
-
-        dmf_acum = dmf_acum_2
-        dmf_acum_2 = (vmei[i][1] * a[i] - q[i] * (a[i]) ** 2 / 2) + dmf_acum
-
-        diag_1x = x_a
-        diag_1y = dmf_acum * PROP_DMF_Y
-        diag_2x = x_acum_dir
-        diag_2y = dmf_acum_2 * PROP_DMF_Y
-        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=BLUE)
-
-        dmf_acum = dmf_acum_2
-
-    x_acum += l[i] * PROP_X
 
 # Desenhando última linha vertical
-x_acum = x_acum = x_acum
-dec_esq_dw = tab_sum[nv - 1][1] * PROP_DEC_Y
-dec_esq_up = 0
-
-line((x_acum, dec_esq_dw), (x_acum, dec_esq_up))
+line((x_acum, tab_sum[nv - 1][1] * PROP_DEC_Y), (x_acum, 0))
 
 img.show()
