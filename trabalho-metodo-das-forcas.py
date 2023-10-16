@@ -1,7 +1,17 @@
 from PIL import Image, ImageDraw
 
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
 
-def line(xy1, xy2, cor=(0, 0, 0)):
+PROP_YX = 1.62
+PROP_X = 100
+
+QTDD_FATIAMENTOS = 5
+
+
+def line(xy1, xy2, cor=BLACK):
     xy1_d = (xy1[0] + x0, xy1[1] + y0)
     xy2_d = (xy2[0] + x0, xy2[1] + y0)
     ImageDraw.Draw(img).line((xy1_d, xy2_d), cor, width=3)
@@ -94,7 +104,7 @@ print("\033[1m" + f"x2 = {x2:.2f}\nx1 = {x1:.2f}\n" + "\033[0m\n")
 
 # Calculando tabela
 
-dM = [(-x1, x1), (x1 - x2, x2 - x1), (x2, -x2)]
+DM = ((-x1, x1), (x1 - x2, x2 - x1), (x2, -x2))
 
 tab_pbL = []
 tab_ql = []
@@ -110,7 +120,7 @@ for i in range(nv):
     tab_sum.append([])
     for j in range(2):
         tab_ql[i].append(q[i] * l[i] / 2)
-        tab_mL[i].append(dM[i][j] / l[i])
+        tab_mL[i].append(DM[i][j] / l[i])
         tab_sum[i].append(tab_pbL[i][j] + tab_ql[i][j] + tab_mL[i][j])
     if p[i] == 0:
         vmei.append([False])
@@ -154,19 +164,14 @@ for li in range(0, 4):
 
 # Preparando imagem
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-
-prop_yx = 1.62
-prop_x = 100
 
 l_tot = max_y_up = max_y_dw = x_acum = dmf_acum = 0
 
 # Definindo tamanho da imagem
 
 for i in l:
-    l_tot += i * prop_x
-l_tot = int(l_tot)
+    l_tot += i
+l_tot = int(l_tot * PROP_X)
 
 side = int(l_tot * 0.05)
 
@@ -177,7 +182,7 @@ for i in tab_sum:
         max_y_dw = i[1]
 
 size_x = int(l_tot * 1.1)
-size_y = int(size_x / prop_yx)
+size_y = int(size_x / PROP_YX)
 
 PROP_DEC_Y = (size_y - side * 2) / (max_y_up + max_y_dw)
 
@@ -193,77 +198,76 @@ line((0, 0), (l_tot, 0))
 
 for i in range(0, nv):
     # Desenhando linha vertical
-    vertical_1x = vertical_2x = x_acum
     if i == 0:
-        vertical_1y = 0
+        dec_esq_dw = 0
     else:
-        vertical_1y = diagonal_2y
-    vertical_2y = -tab_sum[i][0] * PROP_DEC_Y
+        dec_esq_dw = dec_dir_dw
+    dec_esq_up = -tab_sum[i][0] * PROP_DEC_Y
 
-    line((vertical_1x, vertical_1y), (vertical_2x, vertical_2y))
+    line((x_acum, dec_esq_dw), (x_acum, dec_esq_up))
 
     # Desenhando linhas diagonais
-    diagonal_2x = x_acum + l[i] * prop_x
-    diagonal_2y = tab_sum[i][1] * PROP_DEC_Y
+    x_acum_dir = x_acum + l[i] * PROP_X
+    dec_dir_dw = tab_sum[i][1] * PROP_DEC_Y
 
     if p[i] == 0:
-        line((vertical_2x, vertical_2y), (diagonal_2x, diagonal_2y))
+        line((x_acum, dec_esq_up), (x_acum_dir, dec_dir_dw))
 
     else:
-        vertical_meio_x = x_acum + a[i] * prop_x
+        x_a = x_acum + a[i] * PROP_X
 
-        vertical_meio_1y = -vmei[i][0] * PROP_DEC_Y
-        vertical_meio_2y = -vmei[i][1] * PROP_DEC_Y
+        dec_a_1 = -vmei[i][0] * PROP_DEC_Y
+        dec_a_2 = -vmei[i][1] * PROP_DEC_Y
 
-        line((vertical_2x, vertical_2y), (vertical_meio_x, vertical_meio_1y))
-        line((vertical_meio_x, vertical_meio_1y), (vertical_meio_x, vertical_meio_2y))
-        line((vertical_meio_x, vertical_meio_2y), (diagonal_2x, diagonal_2y))
+        line((x_acum, dec_esq_up), (x_a, dec_a_1))
+        line((x_a, dec_a_1), (x_a, dec_a_2))
+        line((x_a, dec_a_2), (x_acum_dir, dec_dir_dw))
 
     # DMF
-    QTDD_FATIAMENTOS = 5
 
     PROP_DMF_Y = 35
     if p[i] == 0:
-        comprimento_fatiamento = l[i] / QTDD_FATIAMENTOS
-        dmf_1 = dmf_acum
-        for n_fatiamento in range(QTDD_FATIAMENTOS):
-            x_atual = (n_fatiamento + 1) * comprimento_fatiamento
-            dmf_2 = tab_sum[i][0] * (x_atual) - q[i] * (x_atual) ** 2 / 2 + dmf_acum
+        l_fat = l[i] / QTDD_FATIAMENTOS
+        dmf_esq = dmf_acum
+        for f in range(QTDD_FATIAMENTOS):
+            l_int = f * l_fat
+            x_esq = x_acum + l_int * PROP_X
+            x_dir = x_esq + l_fat * PROP_X
+            dmf_acum += (tab_sum[i][0] - q[i] * l_int) * l_fat - q[i] * l_fat**2 / 2
 
-            diag_1x = x_acum + (x_atual - comprimento_fatiamento) * prop_x
-            diag_1y = dmf_1 * PROP_DMF_Y
-            diag_2x = x_acum + (x_atual) * prop_x
-            diag_2y = dmf_2 * PROP_DMF_Y
-            line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=(250, 000, 200))
-            dmf_1 = dmf_2
-        dmf_acum = dmf_2
+            line(
+                (x_esq, dmf_esq * PROP_DMF_Y),
+                (x_dir, dmf_acum * PROP_DMF_Y),
+                cor=BLUE,
+            )
+            dmf_esq = dmf_acum
     else:
         dmf_acum_2 = (tab_sum[i][0] * a[i] - q[i] * (a[i]) ** 2 / 2) + dmf_acum
 
         diag_1x = x_acum
         diag_1y = dmf_acum * PROP_DMF_Y
-        diag_2x = vertical_meio_x
+        diag_2x = x_a
         diag_2y = dmf_acum_2 * PROP_DMF_Y
-        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=(250, 000, 200))
+        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=BLUE)
 
         dmf_acum = dmf_acum_2
         dmf_acum_2 = (vmei[i][1] * a[i] - q[i] * (a[i]) ** 2 / 2) + dmf_acum
 
-        diag_1x = vertical_meio_x
+        diag_1x = x_a
         diag_1y = dmf_acum * PROP_DMF_Y
-        diag_2x = diagonal_2x
+        diag_2x = x_acum_dir
         diag_2y = dmf_acum_2 * PROP_DMF_Y
-        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=(250, 000, 200))
+        line((diag_1x, diag_1y), (diag_2x, diag_2y), cor=BLUE)
 
         dmf_acum = dmf_acum_2
 
-    x_acum += l[i] * prop_x
+    x_acum += l[i] * PROP_X
 
 # Desenhando última linha vertical
-vertical_1x = vertical_2x = x_acum
-vertical_1y = tab_sum[nv - 1][1] * PROP_DEC_Y
-vertical_2y = 0
+x_acum = x_acum = x_acum
+dec_esq_dw = tab_sum[nv - 1][1] * PROP_DEC_Y
+dec_esq_up = 0
 
-line((vertical_1x, vertical_1y), (vertical_2x, vertical_2y))
+line((x_acum, dec_esq_dw), (x_acum, dec_esq_up))
 
 img.show()
