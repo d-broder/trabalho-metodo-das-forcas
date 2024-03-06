@@ -69,7 +69,7 @@ exs = [
 ]
 
 # Seleção do exercício
-nEx = 2
+nEx = 1
 
 
 if nEx not in range(len(exs)):
@@ -83,12 +83,8 @@ nv = len(l)
 DMFq = [q[i] * l[i] ** 2 / 8 for i in range(nv)]
 DMFp = [p[i] * a[i] * (l[i] - a[i]) / l[i] for i in range(nv)]
 
-mult_s10 = l[0] * DMFp[0] * (1 + a[0] / l[0]) + l[1] * DMFp[0] * (
-    1 + (l[1] - a[1]) / l[1]
-)
-mult_s20 = l[1] * DMFp[1] * (1 + a[1] / l[1]) + l[2] * DMFp[2] * (
-    1 + (l[2] - a[2]) / l[2]
-)
+mult_s10 = l[0] * DMFp[0] * (1 + a[0] / l[0]) + l[1] * DMFp[0] * (1 + (l[1] - a[1]) / l[1])
+mult_s20 = l[1] * DMFp[1] * (1 + a[1] / l[1]) + l[2] * DMFp[2] * (1 + (l[2] - a[2]) / l[2])
 
 s10 = -(l[0] * DMFq[0] + l[1] * DMFq[1]) / 3 - mult_s10 / 6
 s20 = -(l[1] * DMFq[1] + l[2] * DMFq[2]) / 3 - mult_s20 / 6
@@ -137,18 +133,19 @@ print(
     f"{s11:<6.2f} x1 + {s12:<6.2f} x2 + {s10:<6.2f} = 0\n{s12:<6.2f} x1 + {s22:<6.2f} x2 + {s20:<6.2f} = 0\n"
 )
 print(f"x1 = ({s10 * -1:.2f} - {s12:.2f}*x2 ) / {s11:.2f}")
-print(
-    f"{s12:.2f}*({s10 * -1:.2f} - {s12:.2f}*x2 ) / {s11:.2f} + {s22:.2f}*x2 = {s20 * -1:.2f}"
-)
-print(
-    f"{s12 * s10 / s11 * -1:.2f} - {s12 * s12 / s11:.2f}*x2 + {s22:.2f}*x2 = {s20 * -1:.2f}"
-)
+print(f"{s12:.2f}*({s10 * -1:.2f} - {s12:.2f}*x2 ) / {s11:.2f} + {s22:.2f}*x2 = {s20 * -1:.2f}")
+print(f"{s12 * s10 / s11 * -1:.2f} - {s12 * s12 / s11:.2f}*x2 + {s22:.2f}*x2 = {s20 * -1:.2f}")
 print(f"{s12 * s12 / s11 * -1 + s22:.2f}*x2 = {s20 * -1 - s12 * s10 / s11 * -1:.2f}")
-print("\033[1m" + f"x2 = {x2:.2f}\nx1 = {x1:.2f}\n" + "\033[0m\n")
+print(f"x2 = {s20 * -1 - s12 * s10 / s11 * -1:.2f} / {s22 - s12 * s12 / s11:.2f}\n")
 
+print("\033[1m" + f"x2 = {x2:.2f}\nx1 = {x1:.2f}\n" + "\033[0m")
 
 # Calculando tabela
 DM = ((-x1, x1), (x1 - x2, x2 - x1), (x2, -x2))
+
+print(f"M1 = x1 = {x1:.2f}")
+print(f"M2 = x2 - x1 = {x2 - x1:.2f}")
+print(f"M3 = -x2 = {-x2:.2f}\n")
 
 tab_pbL = []
 tab_ql = []
